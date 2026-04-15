@@ -1,16 +1,4 @@
-node_modules/
-
-# Variables de entorno y secretos
+node_modules
+dist
 .env
-.env.*
-!.env.example
-!.env.*.example
-.env.local
-.env.*.local
-.env*.log
-
-# Claves y credenciales habituales (GCP, etc.)
-*.pem
-*-key.json
-*credentials*.json
-service-account*.json
+*.log
