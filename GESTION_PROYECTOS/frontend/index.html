@@ -20,8 +20,10 @@
             <div class="brand__placeholder" aria-hidden="true"></div>
           </div>
           <nav class="top-nav" aria-label="Principal">
-            <a class="top-nav__pill" href="#">Diagnóstico</a>
-            <a class="top-nav__link" href="#">Estado del Contenido</a>
+            <a class="top-nav__pill" href="#/diagnostico" data-view-link="diagnostico">Diagnóstico</a>
+            <a class="top-nav__link" href="#/estado-contenido" data-view-link="estado-contenido"
+              >Estado del Contenido</a
+            >
           </nav>
           <div class="user-block">
             <div class="user-block__avatar" aria-hidden="true">
@@ -54,6 +56,12 @@
       <main class="page-main" id="main">
         <p id="kpi-status" class="kpi-status kpi-status--loading" role="status"></p>
         <div id="dashboard-kpis" class="kpi-dashboard" aria-busy="true"></div>
+        <section id="estado-contenido-root" class="content-status" hidden>
+          <h2 class="content-status__title">Estado del Contenido</h2>
+          <p id="estado-contenido-status" class="kpi-status kpi-status--loading" role="status"></p>
+          <div id="estado-contenido-summary"></div>
+          <div id="estado-contenido-table"></div>
+        </section>
       </main>
     </div>
     <script type="module" src="/src/main.js"></script>

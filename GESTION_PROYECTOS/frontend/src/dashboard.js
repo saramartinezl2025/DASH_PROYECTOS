@@ -1,7 +1,9 @@
 import { renderPorEstadoThermometer } from "./kpiStatusSegments.js";
 import { mountPolarEscuelasChart } from "./polarEscuelasMount.jsx";
+import { apiUrl } from "./apiBase.js";
+import { detailFromNestJson } from "./nestErrorDetail.js";
 
-const KPI_API = "/api/dashboard/kpis";
+const KPI_API = apiUrl("/api/dashboard/kpis");
 
 /** Definición de tarjetas alineada con SELECT * FROM kpis */
 const KPI_SECTIONS = [
@@ -136,13 +138,9 @@ export async function initDashboard() {
       let detail = res.statusText;
       try {
         const j = JSON.parse(errBody);
-        const parts = [];
-        if (j.message) parts.push(j.message);
-        if (j.detail) parts.push(j.detail);
-        if (j.hint) parts.push(`Sugerencia: ${j.hint}`);
-        if (j.code) parts.push(`[${j.code}]`);
-        if (parts.length) detail = parts.join(" ");
-        else if (j.error) detail = j.error;
+        const fromNest = detailFromNestJson(j);
+        if (fromNest) detail = fromNest;
+        else if (typeof j.error === "string") detail = j.error;
       } catch {
         if (errBody && errBody.trim()) detail = errBody.trim().slice(0, 500);
         else if (res.status >= 500) {
@@ -161,6 +159,10 @@ export async function initDashboard() {
     statusEl.className = "kpi-status kpi-status--ok";
   } catch (e) {
     console.error(e);
+    const isNetwork =
+      e instanceof TypeError &&
+      typeof e.message === "string" &&
+      e.message.toLowerCase().includes("failed to fetch");
     root.innerHTML = "";
     const wrap = document.createElement("div");
     wrap.className = "kpi-error-wrap";
@@ -170,10 +172,20 @@ export async function initDashboard() {
       "No se pudieron cargar los KPIs. Revisa el <strong>detalle técnico</strong> debajo y la línea de estado encima del panel. Suele deberse a: backend parado, proxy de Vite distinto del puerto del API (p. ej. 3030), credenciales en <code>backend/.env</code>, o error SQL (tabla/columnas).";
     const tech = document.createElement("p");
     tech.className = "kpi-error__detail";
-    tech.textContent = e instanceof Error ? e.message : "Error de red";
+    tech.textContent =
+      e instanceof Error
+        ? isNetwork
+          ? `${e.message} (si en Red ves 500, suele ser CORS o mezcla de URL del API; tras redeploy del backend debería mostrarse el detalle JSON del 500).`
+          : e.message
+        : "Error de red";
     wrap.append(p, tech);
     root.appendChild(wrap);
-    statusEl.textContent = e instanceof Error ? e.message : "Error de red";
+    statusEl.textContent =
+      e instanceof Error
+        ? isNetwork
+          ? `${e.message} (revisa CORS/URL del API o redeploy backend)`
+          : e.message
+        : "Error de red";
     statusEl.className = "kpi-status kpi-status--error";
   }
 }

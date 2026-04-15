@@ -6,28 +6,18 @@ import { AppModule } from './app.module';
 
 const bootstrapLogger = new Logger('Bootstrap');
 
-function collectCorsOrigins(): string[] {
-  const fromCsv = (process.env.CORS_ORIGINS || '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const fromSingle = (process.env.FRONTEND_URL || '').trim();
-  const merged = [...fromCsv, ...(fromSingle ? [fromSingle] : [])];
-  return [...new Set(merged)];
-}
-
 async function bootstrap(): Promise<void> {
   bootstrapLogger.log('Creando aplicación Nest…');
   const app = await NestFactory.create(AppModule);
-  const corsOrigins = collectCorsOrigins();
 
-  // Middleware explícito: las respuestas de error también llevan cabeceras CORS
-  // (evita que el navegador oculte un 500 útil detrás de "blocked by CORS policy").
+  // Reflejar el Origin evita que un 500 sin cabeceras CORS se vea en el front como "Failed to fetch"
+  // aunque en Red aparezca 500. Sin cookies en el API: credentials false.
   const corsOptions: CorsOptions = {
-    origin: corsOrigins.length > 0 ? corsOrigins : true,
-    credentials: true,
+    origin: true,
+    credentials: false,
   };
   app.use(cors(corsOptions));
+  bootstrapLogger.log('CORS: origin reflejado (cualquier front puede consumir este API en navegador).');
 
   const port = Number(process.env.PORT) || 3030;
   await app.listen(port, '0.0.0.0');
