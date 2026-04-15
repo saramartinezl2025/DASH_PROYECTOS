@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Proyectos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="top-bar" role="banner">
+        <div class="top-bar__inner">
+          <div class="brand">
+            <div class="brand__placeholder" aria-hidden="true"></div>
+          </div>
+          <nav class="top-nav" aria-label="Principal">
+            <a class="top-nav__pill" href="#">Diagnóstico</a>
+            <a class="top-nav__link" href="#">Estado del Contenido</a>
+          </nav>
+          <div class="user-block">
+            <div class="user-block__avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path
+                  d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                />
+              </svg>
+            </div>
+            <div class="user-block__text">
+              <span class="user-block__name">Iron Fuentes</span>
+              <span class="user-block__role">Director de Operaciones</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="sub-header">
+        <div class="sub-header__inner">
+          <div class="sub-header__titles">
+            <h1 class="sub-header__title">Gestión de Proyectos</h1>
+          </div>
+          <div class="data-badge" role="status">
+            <span class="data-badge__dot" aria-hidden="true"></span>
+            <span class="data-badge__label">Fuente: PostgreSQL</span>
+          </div>
+        </div>
+      </div>
+
+      <main class="page-main" id="main">
+        <p id="kpi-status" class="kpi-status kpi-status--loading" role="status"></p>
+        <div id="dashboard-kpis" class="kpi-dashboard" aria-busy="true"></div>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
