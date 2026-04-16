@@ -9,8 +9,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { apiUrl } from "./apiBase.js";
 
-const API = "/api/dashboard/requests-by-school-type";
+const API = apiUrl("/api/dashboard/requests-by-school-type");
 
 const COLORS = [
   "#3b82f6",
