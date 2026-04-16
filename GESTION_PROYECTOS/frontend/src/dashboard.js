@@ -1,5 +1,11 @@
 import { renderPorEstadoThermometer } from "./kpiStatusSegments.js";
-import { mountPolarEscuelasChart } from "./polarEscuelasMount.jsx";
+import {
+  mountDiasVencimientoChart,
+  mountPolarEscuelasChart,
+  mountProyectosPorMesChart,
+  mountSchoolBubblesChart,
+  unmountDashboardCharts,
+} from "./polarEscuelasMount.jsx";
 
 const KPI_API = "/api/dashboard/kpis";
 
@@ -7,27 +13,19 @@ const KPI_API = "/api/dashboard/kpis";
 const KPI_SECTIONS = [
   {
     title: "Totales",
-    /** Una sola fila de 4 tarjetas (ver .dashboard-grid--4) */
-    layout: "fourCols",
+    /** Una fila: 4 KPI + tasa de cierre + % vencidas (ver .dashboard-grid--6) */
+    layout: "sixCols",
     cards: [
       { key: "total_proyectos", label: "Total proyectos", format: "int" },
       { key: "total_modulos", label: "Total módulos", format: "int" },
       { key: "total_granulos", label: "Total gránulos", format: "int" },
       { key: "total_materiales", label: "Total materiales", format: "int" },
+      { key: "pct_cierre_general", label: "Tasa de cierre", format: "pct1" },
     ],
   },
   {
     title: "Resumen de Estado de Proyectos",
-    /** Misma fuente: pct_* del endpoint /api/dashboard/kpis (ver kpiStatusSegments.js) */
     kind: "thermometer",
-  },
-  {
-    title: "Indicadores",
-    cards: [
-      { key: "materiales_bloqueados", label: "Materiales bloqueados", format: "int" },
-      { key: "pct_materiales_bloqueados", label: "% Materiales bloqueados", format: "pct" },
-      { key: "plazo_mediano_dias", label: "Plazo mediano (días)", format: "decimal" },
-    ],
   },
 ];
 
@@ -42,9 +40,50 @@ function formatValue(raw, format) {
       return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(n);
     case "pct":
       return `${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(n)} %`;
+    case "pct1":
+      return `${new Intl.NumberFormat("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n)}\u00a0%`;
     default:
       return String(raw);
   }
+}
+
+function formatIntEs(n) {
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return "—";
+  return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(Number(n));
+}
+
+/**
+ * @param {Record<string, unknown>} baseline — KPI globales (primera carga); % vencidas siempre desde aquí
+ * @param {boolean} expanded
+ * @param {() => void} onToggle
+ */
+function buildVencidasFifthCard(baseline, expanded, onToggle) {
+  const pct = Number(baseline.pct_solicitudes_vencidas);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className =
+    "dashboard-card dashboard-card--title-value dashboard-card--vencidas-kpi" +
+    (expanded ? " dashboard-card--vencidas-kpi--pressed" : "");
+  btn.setAttribute("aria-expanded", expanded ? "true" : "false");
+  btn.setAttribute(
+    "aria-label",
+    expanded
+      ? "Cerrar filtro: volver a ver todas las solicitudes en las gráficas"
+      : "Activar filtro: mostrar solo solicitudes vencidas en las gráficas del tablero",
+  );
+
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "dashboard-card__eyebrow";
+  eyebrow.textContent = "Solicitudes vencidas %";
+
+  const val = document.createElement("p");
+  val.className = "dashboard-card__value";
+  val.textContent = Number.isNaN(pct) ? "—" : `${formatIntEs(pct)} %`;
+
+  btn.append(eyebrow, val);
+  btn.addEventListener("click", onToggle);
+  return btn;
 }
 
 function buildCard(data, def) {
@@ -66,7 +105,16 @@ function buildCard(data, def) {
   return article;
 }
 
-function renderSections(container, data) {
+/**
+ * @param {HTMLElement} container
+ * @param {Record<string, unknown>} data
+ * @param {{ baselineKpis?: Record<string, unknown> | null, vencidasVistaActiva?: boolean, onToggleVencidas?: () => void }} [ctx]
+ */
+function renderSections(container, data, ctx = {}) {
+  const baselineKpis = ctx.baselineKpis ?? data;
+  const vencidasVistaActiva = Boolean(ctx.vencidasVistaActiva);
+  const onToggleVencidas = ctx.onToggleVencidas ?? (() => {});
+
   container.replaceChildren();
   for (const section of KPI_SECTIONS) {
     const wrap = document.createElement("section");
@@ -80,13 +128,32 @@ function renderSections(container, data) {
 
       const polarHost = document.createElement("div");
       polarHost.id = "polar-escuelas-root";
+      polarHost.className = "diagnostico-chart-slot";
+      const diasHost = document.createElement("div");
+      diasHost.id = "dias-vencimiento-root";
+      diasHost.className = "diagnostico-chart-slot";
+
+      const polarDiasRow = document.createElement("div");
+      polarDiasRow.className = "diagnostico-polar-dias-row";
+      polarDiasRow.append(polarHost, diasHost);
+
+      const mesHost = document.createElement("div");
+      mesHost.id = "proyectos-por-mes-root";
+
+      const bubblesHost = document.createElement("div");
+      bubblesHost.id = "school-bubbles-root";
 
       stack.append(
         renderPorEstadoThermometer(data, {
           title: section.title,
           headingId,
+          filterNote: vencidasVistaActiva
+            ? "Vista filtrada: solo solicitudes con fecha de pedido anterior a hoy."
+            : undefined,
         }),
-        polarHost,
+        polarDiasRow,
+        mesHost,
+        bubblesHost,
       );
       wrap.append(stack);
       container.appendChild(wrap);
@@ -100,6 +167,19 @@ function renderSections(container, data) {
 
     const grid = document.createElement("div");
     grid.className = "dashboard-grid";
+
+    if (section.layout === "sixCols") {
+      wrap.classList.add("kpi-section--six-cols");
+      grid.classList.add("dashboard-grid--6");
+      for (const cardDef of section.cards) {
+        grid.appendChild(buildCard(data, cardDef));
+      }
+      grid.appendChild(buildVencidasFifthCard(baselineKpis, vencidasVistaActiva, onToggleVencidas));
+      wrap.append(h2, grid);
+      container.appendChild(wrap);
+      continue;
+    }
+
     if (section.layout === "fourCols") {
       wrap.classList.add("kpi-section--four-cols");
       grid.classList.add("dashboard-grid--4");
@@ -126,11 +206,33 @@ export async function initDashboard() {
   const statusEl = document.getElementById("kpi-status");
   if (!root) return;
 
+  let baselineKpis = null;
+  let vencidasVistaActiva = false;
+
   statusEl.textContent = "Cargando KPIs…";
   statusEl.className = "kpi-status kpi-status--loading";
 
-  try {
-    const res = await fetch(KPI_API);
+  const dataSourceBadge = document.getElementById("data-source-badge");
+  const dataSourceLabel = document.getElementById("data-source-badge-label");
+
+  function setDataSourceBadge(apiDemoMode, demoReason) {
+    if (!dataSourceBadge || !dataSourceLabel) return;
+    dataSourceBadge.classList.toggle("data-badge--demo", apiDemoMode);
+    if (!apiDemoMode) {
+      dataSourceLabel.textContent = "Fuente: PostgreSQL";
+      return;
+    }
+    dataSourceLabel.textContent =
+      demoReason === "db_unreachable"
+        ? "Fuente: ejemplo (PostgreSQL no alcanzable)"
+        : "Fuente: datos de demostración (sin BD)";
+  }
+
+  async function applyDashboard() {
+    const url = KPI_API + (vencidasVistaActiva ? "?soloVencidas=1" : "");
+    const res = await fetch(url);
+    const apiDemoMode = res.headers.get("X-Gestion-API-Demo") === "1";
+    const demoReason = res.headers.get("X-Gestion-API-Demo-Reason") || "offline";
     if (!res.ok) {
       const errBody = await res.text();
       let detail = res.statusText;
@@ -153,27 +255,62 @@ export async function initDashboard() {
       throw new Error(`${res.status} — ${detail}`);
     }
     const data = await res.json();
-    renderSections(root, data);
-    const polarHost = document.getElementById("polar-escuelas-root");
-    mountPolarEscuelasChart(polarHost);
-    root.setAttribute("aria-busy", "false");
-    statusEl.textContent = "Datos actualizados desde public.factory_requests (CTE school_clean).";
-    statusEl.className = "kpi-status kpi-status--ok";
-  } catch (e) {
-    console.error(e);
-    root.innerHTML = "";
-    const wrap = document.createElement("div");
-    wrap.className = "kpi-error-wrap";
-    const p = document.createElement("p");
-    p.className = "kpi-error";
-    p.innerHTML =
-      "No se pudieron cargar los KPIs. Revisa el <strong>detalle técnico</strong> debajo y la línea de estado encima del panel. Suele deberse a: backend parado, proxy de Vite distinto del puerto del API (p. ej. 3030), credenciales en <code>backend/.env</code>, o error SQL (tabla/columnas).";
-    const tech = document.createElement("p");
-    tech.className = "kpi-error__detail";
-    tech.textContent = e instanceof Error ? e.message : "Error de red";
-    wrap.append(p, tech);
-    root.appendChild(wrap);
-    statusEl.textContent = e instanceof Error ? e.message : "Error de red";
-    statusEl.className = "kpi-status kpi-status--error";
+    if (!baselineKpis) baselineKpis = { ...data };
+
+    unmountDashboardCharts();
+    renderSections(root, data, {
+      baselineKpis,
+      vencidasVistaActiva,
+      onToggleVencidas: () => {
+        vencidasVistaActiva = !vencidasVistaActiva;
+        void runDashboard();
+      },
+    });
+    mountPolarEscuelasChart(document.getElementById("polar-escuelas-root"), vencidasVistaActiva);
+    mountDiasVencimientoChart(document.getElementById("dias-vencimiento-root"));
+    mountProyectosPorMesChart(
+      document.getElementById("proyectos-por-mes-root"),
+      vencidasVistaActiva,
+    );
+    mountSchoolBubblesChart(document.getElementById("school-bubbles-root"), vencidasVistaActiva);
+    return { apiDemoMode, demoReason };
   }
+
+  async function runDashboard() {
+    statusEl.textContent = "Cargando KPIs…";
+    statusEl.className = "kpi-status kpi-status--loading";
+    try {
+      const { apiDemoMode, demoReason } = await applyDashboard();
+      root.setAttribute("aria-busy", "false");
+      setDataSourceBadge(apiDemoMode, demoReason);
+      statusEl.textContent = apiDemoMode
+        ? demoReason === "db_unreachable"
+          ? "Valores de ejemplo: el servidor no puede conectar a PostgreSQL desde esta red (p. ej. Cloud SQL sin IP autorizada o firewall). Con API_DEMO_ON_DB_FAILURE=true se muestran mocks hasta que la BD responda; no son datos reales."
+          : "Modo demostración: API_OFFLINE_DEMO=true en el servidor (no consulta PostgreSQL)."
+        : vencidasVistaActiva
+          ? "Vista filtrada: solo solicitudes vencidas (fecha de pedido anterior a hoy)."
+          : "Datos actualizados desde public.factory_requests (CTE school_clean).";
+      statusEl.className = apiDemoMode ? "kpi-status kpi-status--demo" : "kpi-status kpi-status--ok";
+    } catch (e) {
+      console.error(e);
+      root.innerHTML = "";
+      const wrap = document.createElement("div");
+      wrap.className = "kpi-error-wrap";
+      const p = document.createElement("p");
+      p.className = "kpi-error";
+      p.innerHTML =
+        "No se pudieron cargar los KPIs. Revisa el <strong>detalle técnico</strong> debajo y la línea de estado encima del panel. Suele deberse a: backend parado, proxy de Vite distinto del puerto del API (p. ej. 3030), credenciales en <code>backend/.env</code>, o error SQL (tabla/columnas).";
+      const tech = document.createElement("p");
+      tech.className = "kpi-error__detail";
+      tech.textContent = e instanceof Error ? e.message : "Error de red";
+      wrap.append(p, tech);
+      root.appendChild(wrap);
+      statusEl.textContent = e instanceof Error ? e.message : "Error de red";
+      statusEl.className = "kpi-status kpi-status--error";
+      if (dataSourceBadge) dataSourceBadge.classList.remove("data-badge--demo");
+      if (dataSourceLabel) dataSourceLabel.textContent = "Fuente: no disponible";
+    }
+  }
+
+  await runDashboard();
 }

@@ -2,10 +2,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 import dotenv from "dotenv";
-import { POLAR_SCHOOL_PROGRESS_STACKED } from "./queries/polarSchoolProgressStacked.js";
+import {
+  POLAR_SCHOOL_PROGRESS_STACKED,
+  POLAR_SCHOOL_PROGRESS_STACKED_VENCIDAS,
+} from "./queries/polarSchoolProgressStacked.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+/** `override: true` evita que DB_HOST/PGHOST viejos en variables de entorno de Windows tapen el `backend/.env`. */
+dotenv.config({ path: path.join(__dirname, "..", ".env"), override: true });
 
 const { Pool } = pg;
 
@@ -31,15 +35,22 @@ const sslRejectUnauthorized =
   process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false" &&
   process.env.PGSSL_REJECT_UNAUTHORIZED !== "false";
 
+/** Cloud SQL / redes lentas:15s suele ser poco; sube con DB_CONNECT_TIMEOUT_MS en .env */
+const connectTimeout = Number(process.env.DB_CONNECT_TIMEOUT_MS ?? 60000);
+
 export const pool = new Pool({
   host: pgHost,
   port: pgPort,
   database: pgDatabase,
   user: pgUser,
   password: pgPassword,
-  connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS ?? 15000),
+  connectionTimeoutMillis: connectTimeout,
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30_000),
+  keepAlive: true,
   ssl: useSsl ? { rejectUnauthorized: sslRejectUnauthorized } : undefined,
 });
+
+console.info(`[db] PostgreSQL configurado: ${pgHost}:${pgPort}/${pgDatabase}`);
 
 pool.on("error", (err) => {
   console.error("Error en pool PostgreSQL:", err);
@@ -48,7 +59,8 @@ pool.on("error", (err) => {
 /**
  * Filas polar apiladas: school_norm (ángulo), progress_type (serie), total.
  */
-export async function getRequestsBySchoolAndType() {
-  const { rows } = await pool.query(POLAR_SCHOOL_PROGRESS_STACKED);
+export async function getRequestsBySchoolAndType(soloVencidas = false) {
+  const sql = soloVencidas ? POLAR_SCHOOL_PROGRESS_STACKED_VENCIDAS : POLAR_SCHOOL_PROGRESS_STACKED;
+  const { rows } = await pool.query(sql);
   return rows;
 }

@@ -45,12 +45,13 @@ export function buildPorEstadoSegments(kpiRow) {
 /**
  * Termómetro horizontal + leyenda. Solo lectura de kpiRow; sin datos mock.
  * @param {Record<string, unknown>} kpiRow
- * @param {{ title?: string, headingId?: string }} [opts]
+ * @param {{ title?: string, headingId?: string, filterNote?: string }} [opts]
  * @returns {HTMLElement}
  */
 export function renderPorEstadoThermometer(kpiRow, opts = {}) {
   const title = opts.title ?? "Resumen de Estado de Proyectos";
   const headingId = opts.headingId;
+  const filterNote = opts.filterNote;
 
   const segments = buildPorEstadoSegments(kpiRow);
 
@@ -113,6 +114,14 @@ export function renderPorEstadoThermometer(kpiRow, opts = {}) {
 
     li.append(sw, txt);
     legend.appendChild(li);
+  }
+
+  if (filterNote) {
+    const note = document.createElement("p");
+    note.className = "status-thermo__filter-note";
+    note.textContent = filterNote;
+    wrap.append(heading, note, rail, legend);
+    return wrap;
   }
 
   wrap.append(heading, rail, legend);

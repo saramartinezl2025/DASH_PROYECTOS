@@ -2,10 +2,14 @@
  * Filas para gráfica polar apilada (ángulo: school_norm, stack: progress_type).
  * Misma normalización de escuela que executiveKpis.js (CTE school_clean).
  */
-export const POLAR_SCHOOL_PROGRESS_STACKED = `
+import { SCHOOL_SCOPE_ALL, SCHOOL_SCOPE_VENCIDAS } from "./vencidasScope.js";
+
+function buildPolarSchoolProgressStacked(schoolScopeCte) {
+  return `
 WITH school_clean AS (
     SELECT
         progress_type,
+        work_order_request_date,
         CASE
             WHEN UPPER(TRIM(COALESCE(school::text, ''))) IN (
                 'ESCUELA DE TRANSFORMACI\u00d3N EMPRESARIAL',
@@ -54,12 +58,13 @@ WITH school_clean AS (
 
     FROM public.factory_requests
 ),
+${schoolScopeCte},
 agg AS (
     SELECT
         school_norm,
         progress_type::text AS progress_type,
         COUNT(*)::bigint AS total
-    FROM school_clean
+    FROM school_scope
     WHERE progress_type IS NOT NULL
       AND TRIM(COALESCE(progress_type::text, '')) <> ''
     GROUP BY school_norm, progress_type::text
@@ -82,3 +87,8 @@ ORDER BY
     a.school_norm,
     a.progress_type;
 `;
+}
+
+export const POLAR_SCHOOL_PROGRESS_STACKED = buildPolarSchoolProgressStacked(SCHOOL_SCOPE_ALL);
+export const POLAR_SCHOOL_PROGRESS_STACKED_VENCIDAS =
+  buildPolarSchoolProgressStacked(SCHOOL_SCOPE_VENCIDAS);

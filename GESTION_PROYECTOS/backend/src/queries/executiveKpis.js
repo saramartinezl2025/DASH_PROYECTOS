@@ -1,7 +1,10 @@
 /**
- * KPIs ejecutivos — CTE school_clean + kpis sobre public.factory_requests.
+ * KPIs ejecutivos — CTE school_clean + school_scope + kpis sobre public.factory_requests.
  */
-export const EXECUTIVE_KPIS = `
+import { SCHOOL_SCOPE_ALL, SCHOOL_SCOPE_VENCIDAS } from "./vencidasScope.js";
+
+function buildExecutiveKpis(schoolScopeCte) {
+  return `
 WITH school_clean AS (
     SELECT *,
         CASE
@@ -60,12 +63,13 @@ WITH school_clean AS (
 
     FROM public.factory_requests
 ),
+${schoolScopeCte},
 plazos AS (
     SELECT
         EXTRACT(EPOCH FROM (
             delivery_date::timestamptz - work_order_request_date::timestamptz
         )) / 86400 AS dias
-    FROM school_clean
+    FROM school_scope
     WHERE delivery_date IS NOT NULL
       AND work_order_request_date IS NOT NULL
       AND EXTRACT(EPOCH FROM (
@@ -122,9 +126,37 @@ kpis AS (
 
         COUNT(*) FILTER (
             WHERE progress_type::text = 'Cerrado' AND status::text != 'Entregado'
-        )                                                       AS inconsistencias_cerrado_no_entregado
+        )                                                       AS inconsistencias_cerrado_no_entregado,
 
-    FROM school_clean
+        COUNT(*) FILTER (
+            WHERE work_order_request_date IS NOT NULL
+              AND work_order_request_date::date < CURRENT_DATE
+        )                                                       AS solicitudes_vencidas,
+
+        ROUND(
+            COUNT(*) FILTER (
+                WHERE work_order_request_date IS NOT NULL
+                  AND work_order_request_date::date < CURRENT_DATE
+            ) * 100.0 / NULLIF(COUNT(*), 0), 0
+        )                                                       AS pct_solicitudes_vencidas,
+
+        COUNT(*) FILTER (
+            WHERE COALESCE(progress_type::text, '') = 'Cerrado'
+               OR status::text = 'Entregado'
+        )                                                       AS cantidad_cerrados,
+
+        ROUND(
+            COUNT(*) FILTER (
+                WHERE COALESCE(progress_type::text, '') = 'Cerrado'
+                   OR status::text = 'Entregado'
+            ) * 100.0 / NULLIF(COUNT(*), 0), 1
+        )                                                       AS pct_cierre_general
+
+    FROM school_scope
 )
 SELECT * FROM kpis;
 `;
+}
+
+export const EXECUTIVE_KPIS = buildExecutiveKpis(SCHOOL_SCOPE_ALL);
+export const EXECUTIVE_KPIS_SOLO_VENCIDAS = buildExecutiveKpis(SCHOOL_SCOPE_VENCIDAS);
