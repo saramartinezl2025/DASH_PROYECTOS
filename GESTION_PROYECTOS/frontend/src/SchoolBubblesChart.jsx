@@ -1,7 +1,8 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ClosureDeliveryMonthChart from "./ClosureDeliveryMonthChart.jsx";
+import { apiUrl } from "./apiBase.js";
 
-const API = "/api/dashboard/cierre-por-escuela";
+const API = apiUrl("/api/dashboard/cierre-por-escuela");
 
 /** Radios base (se reescalan al ajustar al viewport). */
 const R_MIN = 30;

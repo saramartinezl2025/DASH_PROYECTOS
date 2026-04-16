@@ -1,4 +1,6 @@
-const DETALLE_API = "/api/detalle-proyectos";
+import { apiUrl } from "./apiBase.js";
+
+const DETALLE_API = apiUrl("/api/detalle-proyectos");
 
 const PROGRESS_BADGE_CLASS = {
   inicial: "detalle-table__badge-estado--inicial",

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { apiUrl } from "./apiBase.js";
 
-const API = "/api/dashboard/cierre-por-mes-entrega";
+const API = apiUrl("/api/dashboard/cierre-por-mes-entrega");
 
 const INDIGO = "#6366F1";
 const INDIGO_FILL_TOP = "rgba(99, 102, 241, 0.078)";

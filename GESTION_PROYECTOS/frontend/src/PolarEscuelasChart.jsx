@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import NightingaleRoseCanvas from "./NightingaleRoseCanvas.jsx";
+import { apiUrl } from "./apiBase.js";
 
 const API = apiUrl("/api/dashboard/requests-by-school-type");
 

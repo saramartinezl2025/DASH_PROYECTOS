@@ -2,35 +2,20 @@
   "name": "gestion-proyectos-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Backend minimo NestJS con Prisma para Cloud Run",
+  "type": "module",
+  "description": "Backend Express para dashboard de gestion de proyectos",
   "license": "UNLICENSED",
   "engines": {
     "node": "20.x"
   },
   "scripts": {
-    "build": "nest build",
-    "dev": "nest start --watch",
-    "start": "node dist/main.js",
-    "start:dev": "nest start --watch",
-    "start:prod": "node dist/main.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
   },
   "dependencies": {
-    "@nestjs/common": "^10.4.15",
-    "@nestjs/core": "^10.4.15",
-    "@nestjs/platform-express": "^10.4.15",
-    "@prisma/client": "^5.22.0",
     "cors": "^2.8.6",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
-  },
-  "devDependencies": {
-    "@nestjs/cli": "^10.4.8",
-    "@nestjs/schematics": "^10.2.3",
-    "@types/cors": "^2.8.19",
-    "@types/node": "^20.17.47",
-    "prisma": "^5.22.0",
-    "typescript": "^5.7.3"
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
   }
 }

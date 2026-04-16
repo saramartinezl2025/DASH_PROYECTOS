@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { apiUrl } from "./apiBase.js";
 
-const API = "/api/serie-tiempo-proyectos";
+const API = apiUrl("/api/serie-tiempo-proyectos");
 
 const cardStyle = {
   background: "#ffffff",

@@ -10,6 +10,24 @@ import { apiUrl } from "./apiBase.js";
 import { detailFromNestJson } from "./nestErrorDetail.js";
 
 const KPI_API = apiUrl("/api/dashboard/kpis");
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 15000);
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error(
+        `Timeout de ${Math.round(timeoutMs / 1000)}s consultando la API. El backend esta lento o sin acceso a PostgreSQL.`,
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 /** Definición de tarjetas alineada con SELECT * FROM kpis */
 const KPI_SECTIONS = [
@@ -232,7 +250,7 @@ export async function initDashboard() {
 
   async function applyDashboard() {
     const url = KPI_API + (vencidasVistaActiva ? "?soloVencidas=1" : "");
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     const apiDemoMode = res.headers.get("X-Gestion-API-Demo") === "1";
     const demoReason = res.headers.get("X-Gestion-API-Demo-Reason") || "offline";
     if (!res.ok) {
