@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestión de Proyectos</title>
+    <title>Gestion de Proyectos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,10 +20,12 @@
             <div class="brand__placeholder" aria-hidden="true"></div>
           </div>
           <nav class="top-nav" aria-label="Principal">
-            <a class="top-nav__pill" href="#/diagnostico" data-view-link="diagnostico">Diagnóstico</a>
-            <a class="top-nav__link" href="#/estado-contenido" data-view-link="estado-contenido"
-              >Estado del Contenido</a
-            >
+            <button type="button" class="top-nav__pill" data-tab="diagnostico" aria-current="page">
+              Diagnostico
+            </button>
+            <button type="button" class="top-nav__link top-nav__tab-btn" data-tab="detalle">
+              Detalle de Proyectos
+            </button>
           </nav>
           <div class="user-block">
             <div class="user-block__avatar" aria-hidden="true">
@@ -44,24 +46,25 @@
       <div class="sub-header">
         <div class="sub-header__inner">
           <div class="sub-header__titles">
-            <h1 class="sub-header__title">Gestión de Proyectos</h1>
+            <h1 class="sub-header__title">Gestion de Proyectos</h1>
           </div>
-          <div class="data-badge" role="status">
-            <span class="data-badge__dot" aria-hidden="true"></span>
-            <span class="data-badge__label">Fuente: PostgreSQL</span>
+          <div class="data-badge" id="data-source-badge" role="status">
+            <span class="data-badge__dot" id="data-source-badge-dot" aria-hidden="true"></span>
+            <span class="data-badge__label" id="data-source-badge-label">Fuente: PostgreSQL</span>
           </div>
         </div>
       </div>
 
       <main class="page-main" id="main">
-        <p id="kpi-status" class="kpi-status kpi-status--loading" role="status"></p>
-        <div id="dashboard-kpis" class="kpi-dashboard" aria-busy="true"></div>
-        <section id="estado-contenido-root" class="content-status" hidden>
-          <h2 class="content-status__title">Estado del Contenido</h2>
-          <p id="estado-contenido-status" class="kpi-status kpi-status--loading" role="status"></p>
-          <div id="estado-contenido-summary"></div>
-          <div id="estado-contenido-table"></div>
-        </section>
+        <div id="pane-diagnostico" class="app-pane">
+          <p id="kpi-status" class="kpi-status kpi-status--loading" role="status"></p>
+          <div id="dashboard-kpis" class="kpi-dashboard" aria-busy="true"></div>
+        </div>
+        <div id="pane-detalle" class="app-pane" hidden>
+          <p id="detalle-status" class="kpi-status" role="status"></p>
+          <div id="detalle-filters" class="detalle-filters" hidden></div>
+          <div id="detalle-proyectos-table" class="detalle-proyectos-table-wrap"></div>
+        </div>
       </main>
     </div>
     <script type="module" src="/src/main.js"></script>

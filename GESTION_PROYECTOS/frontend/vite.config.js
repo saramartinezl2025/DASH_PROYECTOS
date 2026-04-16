@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
-          timeout: 60_000,
-          proxyTimeout: 60_000,
+          timeout: 120_000,
+          proxyTimeout: 120_000,
           configure(proxy) {
             proxy.on("error", (err, _req, res) => {
               if (!res || res.headersSent || typeof res.writeHead !== "function") {
